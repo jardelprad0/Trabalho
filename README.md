@@ -29,8 +29,8 @@ Para medir os objetos, utilizamos marcadores ArUco que são detectados na imagem
 ### Resultados da Medição
 Aqui estão algumas imagens mostrando os resultados das medições:
 
-![Medição de Objetos 1](Codigos/measure_with_aruco_with_distance.py)
-![Medição de Objetos 2](Codigos/measure_with_aruco.py)
+![Medição de Objetos 1](imagens/image%20copy%202.png)
+![Medição de Objetos 2](imagens/image%20copy%203.png)
 
 ## Conclusão
 Este projeto demonstra a aplicação de técnicas de visão computacional para medir objetos com precisão usando marcadores ArUco e calibração de câmera. A percepção robótica desempenha um papel fundamental em tarefas que exigem medições precisas e confiáveis no mundo real.
