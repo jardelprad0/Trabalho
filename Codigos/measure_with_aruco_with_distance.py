@@ -5,8 +5,11 @@ import numpy as np
 ARUCO_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_50)
 ARUCO_PARAMS = cv2.aruco.DetectorParameters()
 
+# Distância conhecida da câmera ao marcador (em mm)
+distance_to_marker = 250  # Altura da câmera em relação ao marcador ArUco
+
 # Dimensão real do lado do marcador ArUco em milímetros
-ARUCO_SIDE_MM = 50  # Exemplo: 50 mm de lado
+ARUCO_SIDE_MM = 50  # Tamanho do marcador em mm
 
 # Parâmetros da câmera (matriz da câmera e coeficientes de distorção)
 camera_matrix = np.array([[629.6773429443547, 0.0, 320.1018395309984],
@@ -17,7 +20,7 @@ dist_coeff = np.array([0.029001373916050614, -0.3362041074876886, 0.005602110532
                        -0.005311479113024399, 0.7661077524826636])
 
 # Inicializar a captura da webcam
-cap = cv2.VideoCapture(4)  # Substituir '0' pelo índice correto da câmera, se necessário
+cap = cv2.VideoCapture(4)  # Substituir '4' pelo índice correto da câmera, se necessário
 
 # Checar se a webcam abriu corretamente
 if not cap.isOpened():
@@ -26,7 +29,17 @@ if not cap.isOpened():
 
 # Função para calcular a distância euclidiana entre dois pontos
 def euclidean_distance(point1, point2):
-    return np.sqrt((point1[0] - point2[0])**2 + (point1[1] - point2[1])**2)
+    return np.linalg.norm(np.array(point1) - np.array(point2))
+
+# Função para calcular pixels por milímetro com base na distância conhecida
+def calculate_pixels_per_mm(corner_points, aruco_side_mm, camera_matrix, distance_to_marker):
+    # Calcular o comprimento de um lado do marcador em pixels
+    pixel_width = np.linalg.norm(corner_points[0] - corner_points[1])
+    
+    # Calcular o fator de escala considerando a distância da câmera
+    focal_length = (camera_matrix[0, 0] + camera_matrix[1, 1]) / 2  # Média das distâncias focais
+    scale = (focal_length * aruco_side_mm) / distance_to_marker  # Pixels por mm ajustados
+    return pixel_width / aruco_side_mm * scale
 
 # Função para medir objetos e desenhar as caixas com dimensões
 def measure_object(image, scale):
@@ -38,13 +51,15 @@ def measure_object(image, scale):
     for contour in contours:
         x, y, w, h = cv2.boundingRect(contour)
         if w > 5 and h > 5:  # Ignorar ruídos pequenos
-            width_mm = w 
-            height_mm = h 
-            measurements.append((width_mm, height_mm))
+            # Calcular as dimensões do objeto em milímetros
+            dimA = (euclidean_distance((x, y), (x + w, y)) / scale)*100  # Tamanho horizontal em mm
+            dimB = (euclidean_distance((x, y), (x, y + h)) / scale) *100 # Tamanho vertical em mm
+
+            measurements.append((dimA, dimB))  # Armazenar as dimensões
 
             # Desenhar o contorno e as dimensões
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            box_text = f"{width_mm:.1f}mm x {height_mm:.1f}mm"
+            box_text = f"{dimA:.1f}mm x {dimB:.1f}mm"
             text_size, _ = cv2.getTextSize(box_text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
             text_w, text_h = text_size
 
@@ -66,12 +81,9 @@ while True:
     # Corrigir distorção da imagem usando a matriz de calibração
     frame_undistorted = cv2.undistort(frame, camera_matrix, dist_coeff)
 
-    # Converter o frame corrigido para escala de cinza
-    gray = cv2.cvtColor(frame_undistorted, cv2.COLOR_BGR2GRAY)
-
     # Detectar marcadores ArUco no frame corrigido
-    detector = cv2.aruco.ArucoDetector(ARUCO_DICT, ARUCO_PARAMS)
-    corners, ids, _ = detector.detectMarkers(gray)
+    gray = cv2.cvtColor(frame_undistorted, cv2.COLOR_BGR2GRAY)
+    corners, ids, _ = cv2.aruco.detectMarkers(gray, ARUCO_DICT, parameters=ARUCO_PARAMS)
 
     # Se marcadores forem detectados
     if ids is not None:
@@ -82,9 +94,8 @@ while True:
             # Desenhar o contorno do marcador
             cv2.polylines(frame_undistorted, [np.int32(points)], True, (0, 255, 0), 2)
 
-            # Calcular a escala em pixels por milímetro
-            pixel_width = euclidean_distance(points[0], points[1])  # Distância entre dois pontos adjacentes
-            pixels_per_mm = (295 * ARUCO_SIDE_MM) / pixel_width
+            # Calcular a escala em pixels por milímetro com a distância conhecida
+            pixels_per_mm = calculate_pixels_per_mm(points, ARUCO_SIDE_MM, camera_matrix, distance_to_marker)
 
             # Identificar o centro do marcador
             center_x = int(np.mean(points[:, 0]))
@@ -94,11 +105,12 @@ while True:
             cv2.putText(frame_undistorted, f"ID: {marker_id}", (center_x - 20, center_y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-            # Medir os objetos na imagem usando a escala
+            # Medir os objetos na imagem usando a escala ajustada
             measurements = measure_object(frame_undistorted, pixels_per_mm)
 
-            for i, (w, h) in enumerate(measurements):
-                print(f"Objeto {i + 1}: {pixels_per_mm:.2f}mm ")
+            # Exibir as medições para depuração
+            for i, (dimA, dimB) in enumerate(measurements):
+                print(f"Objeto {i + 1}: {dimA:.2f}mm x {dimB:.2f}mm")
 
     # Mostrar o frame corrigido na tela
     cv2.imshow("ArUco Detection and Measurement", frame_undistorted)
