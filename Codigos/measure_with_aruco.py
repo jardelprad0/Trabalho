@@ -15,7 +15,6 @@ camera_matrix = np.array([[629.6773429443547, 0.0, 320.1018395309984],
 
 dist_coeff = np.array([0.029001373916050614, -0.3362041074876886, 0.0056021105323758045,
                        -0.005311479113024399, 0.7661077524826636])
-
 # Inicializar a captura da webcam
 cap = cv2.VideoCapture(4)  # Substituir '4' pelo índice correto da câmera, se necessário
 
