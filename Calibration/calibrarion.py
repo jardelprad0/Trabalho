@@ -17,12 +17,12 @@ objpoints = []  # 3D point in real world space
 imgpoints = []  # 2D points in image plane.
 
 # Load images from specified directory
-images = glob.glob(r'/home/jardel/Desktop/Trabalho/Calibration/c920/*.jpg')
-images_result = glob.glob(r'/home/jardel/Desktop/Trabalho/Calibration/c920_result/*.jpg')
+images = glob.glob(r'/Calibration/c920/*.jpg')
+images_result = glob.glob(r'/Calibration/c920_result/*.jpg')
 
 # Create a results directory to save corrected images
-results_dir = '/home/jardel/Desktop/Trabalho/Calibration/results-c920'
-combined_iphone_results = '/home/jardel/Desktop/Trabalho/Calibration/results-combined-c920'
+results_dir = '/Calibration/results-c920'
+combined_iphone_results = '/Calibration/results-combined-c920'
 
 os.makedirs(results_dir, exist_ok=True)
 os.makedirs(combined_iphone_results, exist_ok=True)
